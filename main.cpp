@@ -6,6 +6,7 @@
 #include <string>
 #include <sys/stat.h>
 #include <math.h>
+#include <cmath>
 #include <stdio.h>
 #include <sys/types.h>
 #include <ctime>
@@ -76,10 +77,16 @@ struct Pos2D3D
 //typedef std::pair<int, int> Edge;
 
 
-void image_graph(int imWidth,int imHeight,string crd, Mat image, int smin, int thresholding_m);
+void image_graph(const int &imWidth, const int &imHeight, const string &crd, const Mat &image, const int &smin, const int &thresholding_m);
 void image_graph_run();
 void image_graph_calc(const string &crd, const string &dir_input, const string &file_input);
-Adaptive_Grid image_graph_AMR_2D_Adaptive_grid(int imWidth,int imHeight,string crd,Mat im,string dir_conv,string dir_Edges,string dir_QuadTree,string dir_output);
+Adaptive_Grid image_graph_AMR_2D_Adaptive_grid(const int& imWidth,
+                                               const int& imHeight,
+                                               const string& crd,
+                                               const Mat& im,string dir_conv,
+                                               const string& dir_Edges,
+                                               const string& dir_QuadTree,
+                                               const string& dir_output);
 Graph grid_grid_all(Mat im, string file_path,Adaptive_Grid Edges_pos_dir_conv,int dz);
 void save0(string url,std::vector<Triple> Edges);
 void save0(string url,std::vector<int> data);
@@ -96,7 +103,12 @@ Graph convert_node_labels_to_integers(Graph g);
 //Pos2D3D image_graph_help_grid_pos2D(int n,std::vector<Triple> pos);
 
 
-void image_graph(int imWidth,int imHeight,string crd, Mat image, int smin, int thresholding_m)
+void image_graph(const int& imWidth,
+                 const int& imHeight,
+                 const string& crd,
+                 const Mat& image,
+                 const int& smin,
+                 const int& thresholding_m)
 {
     // timing
     printf("image width = %d, image height = %d\n", imWidth, imHeight);
@@ -136,31 +148,31 @@ void image_graph_run()
 }
 
 
-void image_graph_calc(const string& crd, const string& dir_input, const string& file_input)
+void image_graph_calc(const string& crd,
+                      const string& dir_input,
+                      const string& file_input)
 {
-    string name("Adaptive_grid_");
-    string dir_output = dir_input+"Output_"+name+file_input+SEP;
-    string subfolders[7] = {"data_posi","data_conv","data_grph","data_datn","data_prop","data_readable","plot_grid"};
-    string file_path = dir_input+file_input;
+    const string name("Adaptive_grid_");
+    const string dir_output = dir_input + "Output_" + name + file_input + SEP;
+    const string subfolders[7] = {"data_posi","data_conv","data_grph","data_datn","data_prop","data_readable","plot_grid"};
+    const string file_path = dir_input + file_input;
     mkdir(dir_output.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-    for (int i = 0; i < (sizeof(subfolders)/sizeof(*subfolders)); ++i)
+    for (int i = 0; i < (sizeof(subfolders) / sizeof(*subfolders)); ++i)
         {
-            string s1=dir_output+subfolders[i];
+            string s1 = dir_output + subfolders[i];
             mkdir(s1.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
-            //std::cout<<s1<<std::endl;
         }
-    string s2=dir_output+"data_readable"+SEP+"data_readable.txt";
+    string s2 = dir_output + "data_readable" + SEP + "data_readable.txt";
     remove(s2.c_str());
 
-    std::cout<<"image_graph_AMR"<<std::endl;
+    std::cout << "image_graph_AMR" << std::endl;
     Mat im = imread(file_path.c_str(), IMREAD_GRAYSCALE);
 
-    int imHeight = im.rows;
-    int imWidth = im.cols;
-    int AMR = 1;///to be removed
-    string dir_conv = dir_output+"data_conv"+SEP+"data_conv";
-    string dir_Edges = dir_output+"data_Edges"+SEP+"data_Edges";
-    string dir_QuadTree = dir_output+"data_QuadTree"+SEP+"data_QuadTree";
+    const int imHeight = im.rows;
+    const int imWidth = im.cols;
+    const string dir_conv = dir_output + "data_conv" + SEP + "data_conv";
+    const string dir_Edges = dir_output + "data_Edges" + SEP + "data_Edges";
+    const string dir_QuadTree = dir_output + "data_QuadTree" + SEP + "data_QuadTree";
 
     if(im.dims == 2)
         {
@@ -170,7 +182,15 @@ void image_graph_calc(const string& crd, const string& dir_input, const string& 
         {
             printf("3D image_graph ..\n"); // in next steps I will work on 3D version
         }
-    Adaptive_Grid Edges_pos_dir_conv=image_graph_AMR_2D_Adaptive_grid(imWidth,imHeight,crd,im,dir_conv,dir_Edges,dir_QuadTree,dir_output);
+
+    Adaptive_Grid Edges_pos_dir_conv = image_graph_AMR_2D_Adaptive_grid(imWidth,
+                                                                        imHeight,
+                                                                        crd,
+                                                                        im,
+                                                                        dir_conv,
+                                                                        dir_Edges,
+                                                                        dir_QuadTree,
+                                                                        dir_output);
     std::cout<<"graph"<<std::endl;
     time_t temp1 = time(0);
     Graph graph = grid_grid_all(im,file_path,Edges_pos_dir_conv,1);
@@ -198,9 +218,18 @@ void image_graph_calc(const string& crd, const string& dir_input, const string& 
 }
 
 
-Adaptive_Grid image_graph_AMR_2D_Adaptive_grid(int imWidth,int imHeight,string crd,Mat im,string dir_conv,string dir_Edges,string dir_QuadTree,string dir_output)
+Adaptive_Grid image_graph_AMR_2D_Adaptive_grid(const int& imWidth,
+                                               const int& imHeight,
+                                               const string& crd,
+                                               const Mat& im,string dir_conv,
+                                               const string& dir_Edges,
+                                               const string& dir_QuadTree,
+                                               const string& dir_output)
 {
     Adaptive_Grid ag;
+
+    const float SMIN = 3.2;
+    const int D = (int)std::ceil(std::log(float(min(imWidth, imHeight))/SMIN) + 1.5) + 1;
     return ag;
 }
 
