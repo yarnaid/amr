@@ -12,14 +12,19 @@
 #include <ctime>
 #include <utility>
 #include <algorithm>
+#include <map>
+#include <vector>
 
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/dijkstra_shortest_paths.hpp>
+#include <boost/tuple/tuple.hpp>
+#include <boost/variant.hpp>
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 
 #define NOMINMAX
 
@@ -32,6 +37,17 @@ using namespace boost;
 
 
 typedef std::pair<int, int> Pair;
+typedef std::map<variant<float, double, string>, variant<float, double, string> > nested_dict;
+
+typedef tuple<const float, const float, const int, const int, const float> posi_t;
+typedef std::map<const int, const posi_t> pos_res;
+
+
+nested_dict QuadTree;
+nested_dict Pos;
+nested_dict ThresholdD;
+float Global_Thresh;
+float b_thresh;
 
 struct Triple
 {
@@ -83,7 +99,7 @@ void image_graph_calc(const string &crd, const string &dir_input, const string &
 Adaptive_Grid image_graph_AMR_2D_Adaptive_grid(const int& imWidth,
                                                const int& imHeight,
                                                const string& crd,
-                                               const Mat& im,string dir_conv,
+                                               const Mat& im, const string &dir_conv,
                                                const string& dir_Edges,
                                                const string& dir_QuadTree,
                                                const string& dir_output);
@@ -113,25 +129,25 @@ void image_graph(const int& imWidth,
     // timing
     printf("image width = %d, image height = %d\n", imWidth, imHeight);
 
-    if (smin<2)
+    if (smin < 2)
         {
             printf(" The minimum block size can not be less than 2 pixels \n");
             return;
         }
-    int D = log(min(imWidth, imHeight)/smin)+float(3/2);
+    int D = log(min(imWidth, imHeight) / smin) + float(3. / 2.);
     printf("The margins of the grid will be %d\n", D);
     int w = imWidth - (D*2);
     int h = imHeight - (D*2);
     printf("The Width of the grid = %d ,  and the Height of the grid = %d\n",w,h);
-    int dmax = log(min(w, h)/smin) + float(3/2);
+    int dmax = log(min(w, h)/smin) + float(3. / 2.);
     printf("The maximum depth the grid could be divided into = %d\n", dmax);
     if (smin<=16) // set Guassian kernel
         {
-            float v = 0.5*smin;
+            float v = 0.5 * smin;
         }
     else
         {
-            float v= 8;
+            float v = 8.;
         }
 
     return;
@@ -218,10 +234,91 @@ void image_graph_calc(const string& crd,
 }
 
 
+void check_cell(const int& Depth,
+                const int& k,
+                std::vector<Pair> cellCoords,
+                const float& disvalue,
+                const float& smin,
+                const Mat& im,
+                const int& imWidth, 
+                const int& imHeight, 
+//                .. crd,
+                const int& D,
+                const int& dmax,
+                const int& T)
+{
+    if (Depth > dmax + 1)
+        return;
+}
+
+pos_res find_positions(const float& x1,
+                       const float& y1,
+                       const float& dx,
+                       const float& dy,
+                       const int& Depth)
+{
+    pos_res res;
+
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            res.insert(std::pair<int, posi_t>(3 * i + j, posi_t(x1 + dx * i, y1 + dy * j, 1, Depth, b_thresh)));
+        }
+    }
+
+    return res;
+}
+
+
+int divide_decision(const int& Depth,
+                    const int& k,
+                    std::vector<float> cellCoords,
+                    const float& disvalue,
+                    const float& smin,
+                    const int& dmax,
+                    const Mat& im,
+                    const int& imWidth,
+                    const int& imHeight,
+//                    ... crd,
+                    const int& D,
+                    std::vector<float>& compute_convs,
+                    const int& T)
+{
+    const float cell_w = imWidth / (1<<D);
+    const float cell_h = imHeight / (1<<D);
+
+    const float dx = cell_w / 2;
+    const float dy = cell_h / 2;
+
+    const float x1 = (cell_w * cellCoords[0]) + D;
+    const float y1 = (cell_h * cellCoords[1]) + D;
+    const float x2 = (cell_w * (cellCoords[0] + 1)) + D;
+    const float y2 = (cell_h * (cellCoords[1] + 1)) + D;
+
+    const Rect bounds(x1, y1, x2, y2);
+    const float min_d = min(dx, dy);
+
+    const float min_edge_size = min(cell_w, cell_h);
+    const float max_edge_size = max(cell_w, cell_h);
+
+    const Mat imc = im(bounds);
+
+    if (min_edge_size >= smin) {
+        // if k == 1
+        Mat img;  // bw otsu dst image
+        threshold(imc, img, 0, 255, CV_THRESH_BINARY | CV_THRESH_OTSU);  // TODO: check!
+
+        pos_res posi;
+        posi = find_positions(x1, y1, dx, dy, Depth);
+    }
+
+}
+
+
 Adaptive_Grid image_graph_AMR_2D_Adaptive_grid(const int& imWidth,
                                                const int& imHeight,
                                                const string& crd,
-                                               const Mat& im,string dir_conv,
+                                               const Mat& im,
+                                               const string& dir_conv,
                                                const string& dir_Edges,
                                                const string& dir_QuadTree,
                                                const string& dir_output)
@@ -236,8 +333,12 @@ Adaptive_Grid image_graph_AMR_2D_Adaptive_grid(const int& imWidth,
     const int dmax = (int)std::ceil(std::log(float(min(W, H))/SMIN) + 1.5);
     const float disvalue = 0.5 * SMIN;
     
-    std::vector<int>  new_bounds({D, D, D + W, D + H});
+    const Rect new_bounds(D, D, D + W, D + H);
+    const Mat cropped_image = im(new_bounds);
     
+    Mat img;  // bw otsu dst image
+    threshold(cropped_image, img, 0, 255, CV_THRESH_BINARY | CV_THRESH_OTSU);
+
     return ag;
 }
 
