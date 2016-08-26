@@ -230,6 +230,14 @@ Adaptive_Grid image_graph_AMR_2D_Adaptive_grid(const int& imWidth,
 
     const float SMIN = 3.2;
     const int D = (int)std::ceil(std::log(float(min(imWidth, imHeight))/SMIN) + 1.5) + 1;
+    const int W = imWidth - D * 2;
+    const int H = imHeight -D * 2;
+
+    const int dmax = (int)std::ceil(std::log(float(min(W, H))/SMIN) + 1.5);
+    const float disvalue = 0.5 * SMIN;
+    
+    std::vector<int>  new_bounds({D, D, D + W, D + H});
+    
     return ag;
 }
 
